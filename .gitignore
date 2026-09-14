@@ -1,0 +1,12 @@
+node_modules/
+.npm-cache/
+dist/
+.vite/
+*.log
+.DS_Store
+*.local
+.idea
+.vscode
+.env
+*.docx
+*.doc
