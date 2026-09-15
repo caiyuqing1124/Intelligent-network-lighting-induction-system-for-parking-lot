@@ -1,11 +1,15 @@
 import { defineStore } from 'pinia'
-import { createInitialZones } from '../mock/zones.js'
+import { createFloorLayouts, createInitialZones } from '../mock/zones.js'
 
 export const useZoneStore = defineStore('zones', {
-  state: () => ({ zones: createInitialZones() }),
+  state: () => ({
+    zones: createInitialZones(),
+    floorLayouts: createFloorLayouts(),
+  }),
   actions: {
     reset() {
       this.zones = createInitialZones()
+      this.floorLayouts = createFloorLayouts()
     },
     getById(id) {
       return this.zones.find((zone) => zone.id === id)

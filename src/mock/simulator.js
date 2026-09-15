@@ -4,6 +4,7 @@ import { useEnergyStore } from '../store/energyStore.js'
 import { useRuleStore } from '../store/ruleStore.js'
 import { useZoneStore } from '../store/zoneStore.js'
 import { reconcileZone } from '../utils/simulateSensor.js'
+import { isRuleValid } from '../utils/validateRule.js'
 
 export const SIMULATOR_CONFIG = Object.freeze({
   tickMs: 3000,
@@ -12,6 +13,7 @@ export const SIMULATOR_CONFIG = Object.freeze({
   minimumRecoveryMs: 30_000,
   maximumRecoveryMs: 90_000,
   manualModeMs: 300_000,
+  energySampleMs: 15_000,
 })
 
 let appSimulator = null
@@ -136,6 +138,19 @@ export function createSimulationController(pinia, options = {}) {
     return true
   }
 
+  function updateRule(id, changes, now = nowFn()) {
+    const rule = ruleStore.getById(id)
+    if (!rule) return false
+    const nextRule = { ...rule, ...changes }
+    if (!isRuleValid(nextRule)) return false
+
+    settle(now)
+    const previousActive = activeByZone()
+    ruleStore.updateRule(id, nextRule)
+    reconcile(now, previousActive)
+    return true
+  }
+
   function restoreAutomatic(id, now = nowFn()) {
     const light = deviceStore.getById(id)
     if (
@@ -148,6 +163,28 @@ export function createSimulationController(pinia, options = {}) {
     settle(now)
     deviceStore.updateDevice(id, { manualUntilAt: null }, now)
     reconcile(now)
+    return true
+  }
+
+  function shortenManualWait(id, now = nowFn()) {
+    const light = deviceStore.getById(id)
+    if (
+      light?.type !== 'light' ||
+      light.status !== 'online' ||
+      light.manualUntilAt === null
+    ) {
+      return false
+    }
+    deviceStore.updateDevice(id, { manualUntilAt: now }, now)
+    return true
+  }
+
+  function shortenRecoveryWait(id, now = nowFn()) {
+    const device = deviceStore.getById(id)
+    if (!device || device.status === 'online' || device.recoverAt === null) {
+      return false
+    }
+    deviceStore.updateDevice(id, { recoverAt: now }, now)
     return true
   }
 
@@ -221,7 +258,7 @@ export function createSimulationController(pinia, options = {}) {
       }
     }
     reconcile(now, previousActive)
-    energyStore.sample(now)
+    energyStore.sample(now, config.energySampleMs)
   }
 
   function reset(now = nowFn()) {
@@ -229,7 +266,7 @@ export function createSimulationController(pinia, options = {}) {
     zoneStore.reset()
     ruleStore.reset()
     alertStore.reset()
-    energyStore.reset(now)
+    energyStore.reset(now, deviceStore.devices)
     reconcile(now)
   }
 
@@ -259,7 +296,10 @@ export function createSimulationController(pinia, options = {}) {
     triggerSensor,
     setDeviceStatus,
     manualSetLight,
+    updateRule,
     restoreAutomatic,
+    shortenManualWait,
+    shortenRecoveryWait,
     setRandomEventsEnabled(enabled) {
       randomEventsEnabled = Boolean(enabled)
     },

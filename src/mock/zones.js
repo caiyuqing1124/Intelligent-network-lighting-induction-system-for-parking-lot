@@ -5,11 +5,34 @@ export const floorLayouts = {
       { x: 40, y: 175, width: 720, height: 70 },
       { x: 385, y: 40, width: 30, height: 340 },
     ],
+    parkingRows: [
+      { x: 46, y: 62, count: 7, width: 38, gap: 8, height: 88 },
+      { x: 436, y: 62, count: 7, width: 38, gap: 8, height: 88 },
+      { x: 46, y: 270, count: 7, width: 38, gap: 8, height: 88 },
+      { x: 436, y: 270, count: 7, width: 38, gap: 8, height: 88 },
+    ],
   },
   B2: {
     viewBox: '0 0 800 420',
     lanes: [{ x: 40, y: 175, width: 720, height: 70 }],
+    parkingRows: [
+      { x: 56, y: 62, count: 14, width: 40, gap: 12, height: 88 },
+      { x: 56, y: 270, count: 14, width: 40, gap: 12, height: 88 },
+    ],
   },
+}
+
+export function createFloorLayouts() {
+  return Object.fromEntries(
+    Object.entries(floorLayouts).map(([floor, layout]) => [
+      floor,
+      {
+        viewBox: layout.viewBox,
+        lanes: layout.lanes.map((lane) => ({ ...lane })),
+        parkingRows: layout.parkingRows.map((row) => ({ ...row })),
+      },
+    ]),
+  )
 }
 
 export const initialZones = [
