@@ -29,6 +29,177 @@ function setup(startAt = 1_000_000, config = {}) {
   }
 }
 
+test('manual brightness accepts zero and one hundred but rejects invalid inputs without mutation', () => {
+  const { simulator, devices, startAt: t } = setup()
+  const light = devices.getById('light-b1-a-1')
+  assert.equal(simulator.manualSetLight(light.id, 0, t), true)
+  assert.equal(light.lightState, 'off')
+  assert.equal(light.brightness, 0)
+  assert.equal(simulator.manualSetLight(light.id, 100, t + 1), true)
+  const snapshot = JSON.stringify(light)
+  for (const value of [-1, 101, 0.5, NaN, Infinity, '50', null, undefined]) {
+    assert.equal(simulator.manualSetLight(light.id, value, t + 2), false)
+    assert.equal(JSON.stringify(light), snapshot)
+  }
+  assert.equal(simulator.manualSetLight('missing', 50, t), false)
+  assert.equal(simulator.manualSetLight('sensor-b1-a-1', 50, t), false)
+})
+
+test('zero return delay has no stale countdown and missing online sensors cancel an active countdown', () => {
+  const { simulator, devices, zones, rules, startAt: t } = setup()
+  const zone = zones.getById('zone-b1-a')
+  simulator.updateRule(zone.ruleId, { triggerDelayOff: 0 }, t)
+  simulator.triggerSensor('sensor-b1-a-1', t)
+  simulator.tick(t + rules.getById(zone.ruleId).triggerHoldSeconds * 1000, {
+    randomEvents: false,
+  })
+  assert.equal(zone.delayUntilAt, null)
+  assert.equal(devices.getById('light-b1-a-1').brightness, 20)
+  simulator.updateRule(zone.ruleId, { triggerDelayOff: 12 }, t + 7000)
+  simulator.triggerSensor('sensor-b1-a-1', t + 7000)
+  simulator.tick(t + 13000, { randomEvents: false })
+  assert.ok(zone.delayUntilAt > t + 13000)
+  simulator.setDeviceStatus('sensor-b1-a-1', 'offline', t + 14000)
+  simulator.setDeviceStatus('sensor-b1-a-2', 'offline', t + 14000)
+  assert.equal(zone.delayUntilAt, null)
+  simulator.tick(t + 26000, { randomEvents: false })
+  assert.equal(devices.getById('light-b1-a-1').brightness, 100)
+})
+
+test('ordinary and cross-midnight schedules are left-inclusive and right-exclusive', () => {
+  const { rules } = setup()
+  const rule = { ...rules.rules[0], scheduleEnabled: true }
+  const at = (hour, minute) => new Date(2026, 8, 16, hour, minute).getTime()
+  for (const [start, end, cases] of [
+    [
+      '08:00',
+      '18:00',
+      [
+        [7, 59, false],
+        [8, 0, true],
+        [17, 59, true],
+        [18, 0, false],
+      ],
+    ],
+    [
+      '22:00',
+      '06:00',
+      [
+        [21, 59, false],
+        [22, 0, true],
+        [0, 0, true],
+        [5, 59, true],
+        [6, 0, false],
+      ],
+    ],
+  ]) {
+    Object.assign(rule, { scheduleStartTime: start, scheduleEndTime: end })
+    for (const [hour, minute, expected] of cases)
+      assert.equal(isScheduledNow(rule, at(hour, minute)), expected)
+  }
+  rule.scheduleEnabled = false
+  assert.equal(isScheduledNow(rule, at(23, 0)), false)
+  rule.scheduleEnabled = true
+  rule.scheduleEndTime = rule.scheduleStartTime
+  assert.equal(isScheduledNow(rule, at(23, 0)), false)
+})
+
+test('invalid rule shapes are safely rejected and never replace a saved rule', () => {
+  const { simulator, rules, startAt: t } = setup()
+  assert.ok(Object.keys(validateRule(null)).length > 0)
+  assert.ok(Object.keys(validateRule(undefined)).length > 0)
+  const rule = rules.rules[0]
+  const snapshot = JSON.stringify(rule)
+  for (const changes of [
+    { name: ' ' },
+    { name: '字'.repeat(31) },
+    { scheduleEnabled: 'true' },
+    { scheduleStartTime: '24:00' },
+    { scheduleEndTime: rule.scheduleStartTime },
+  ]) {
+    assert.equal(simulator.updateRule(rule.id, changes, t), false)
+    assert.equal(JSON.stringify(rule), snapshot)
+  }
+})
+
+test('fault episodes remain deduplicated after handling and after recovery with an unresolved history', () => {
+  const { simulator, devices, alerts, startAt: t } = setup()
+  const id = 'light-b1-a-1'
+  simulator.setDeviceStatus(id, 'fault', t)
+  const first = alerts.alerts[0]
+  alerts.resolve(first.id, t + 1)
+  assert.equal(devices.getById(id).status, 'fault')
+  assert.equal(alerts.recordFault(devices.getById(id), 'fault', t + 2), null)
+  simulator.setDeviceStatus(id, 'online', t + 3)
+  simulator.setDeviceStatus(id, 'fault', t + 4)
+  assert.equal(alerts.alerts.length, 2)
+  const second = alerts.alerts[0]
+  simulator.setDeviceStatus(id, 'online', t + 5)
+  assert.equal(second.resolved, false)
+  simulator.setDeviceStatus(id, 'fault', t + 6)
+  assert.equal(alerts.alerts.length, 2)
+  alerts.resolve(second.id, t + 7)
+  assert.equal(alerts.recordFault(devices.getById(id), 'fault', t + 8), null)
+  simulator.setDeviceStatus(id, 'online', t + 9)
+  simulator.setDeviceStatus(id, 'fault', t + 10)
+  assert.equal(alerts.alerts.length, 3)
+})
+
+test('a ten-minute virtual session has one interval and restart resets every runtime domain', () => {
+  const pinia = createPinia()
+  let now = 1_000_000
+  const timers = new Map()
+  let nextTimer = 0
+  const simulator = createSimulationController(pinia, {
+    now: () => now,
+    random: () => 1,
+    setInterval: (callback) => {
+      timers.set(++nextTimer, callback)
+      return nextTimer
+    },
+    clearInterval: (id) => timers.delete(id),
+  })
+  const devices = useDeviceStore(pinia)
+  const zones = useZoneStore(pinia)
+  const rules = useRuleStore(pinia)
+  const alerts = useAlertStore(pinia)
+  const energy = useEnergyStore(pinia)
+  assert.equal(simulator.start(), true)
+  simulator.updateRule(rules.rules[0].id, { fullBrightness: 80 }, now)
+  simulator.manualSetLight('light-b1-a-1', 0, now)
+  simulator.setDeviceStatus('light-b1-a-2', 'fault', now)
+  for (let tick = 0; tick < 200; tick++) {
+    now += 3000
+    assert.equal(simulator.start(), false)
+    for (const callback of timers.values()) callback()
+    assert.equal(timers.size, 1)
+  }
+  assert.equal(alerts.alerts.length, 1)
+  assert.ok(energy.actualKwh > 0)
+  assert.ok(energy.actualKwh <= energy.baselineKwh)
+  assert.equal(simulator.stop(), true)
+  assert.equal(simulator.stop(), false)
+  assert.equal(timers.size, 0)
+  now += 1000
+  assert.equal(simulator.start(), true)
+  assert.equal(rules.rules[0].fullBrightness, 100)
+  assert.equal(alerts.alerts.length, 0)
+  assert.deepEqual(alerts.activeEpisodes, {})
+  assert.ok(zones.zones.every((zone) => zone.delayUntilAt === null))
+  assert.ok(
+    devices.devices.every(
+      (device) =>
+        device.status === 'online' &&
+        device.manualUntilAt === null &&
+        device.triggered !== true,
+    ),
+  )
+  assert.equal(energy.actualKwh, 0)
+  assert.equal(energy.baselineKwh, 0)
+  assert.deepEqual(energy.samples, [{ at: now, actualKwh: 0, baselineKwh: 0 }])
+  simulator.stop()
+})
+
 test('multiple sensors keep lights bright until all holds finish, then delay and return', () => {
   const { simulator, devices, zones, startAt: t } = setup()
   const light = devices.getById('light-b1-a-1')

@@ -5,7 +5,6 @@ import 'element-plus/dist/index.css'
 import App from './App.vue'
 import router from './router/index.js'
 import { getAppSimulator } from './mock/simulator.js'
-import { useUserStore } from './store/userStore.js'
 import './style.css'
 
 const app = createApp(App)
@@ -16,7 +15,5 @@ app.component('ElButton', ElButton)
 app.mount('#app')
 
 const simulator = getAppSimulator(pinia)
-if (import.meta.env.DEV || useUserStore(pinia).isAuthenticated)
-  simulator.start()
 window.addEventListener('beforeunload', () => simulator.stop())
 if (import.meta.hot) import.meta.hot.dispose(() => simulator.stop())

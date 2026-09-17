@@ -205,10 +205,10 @@ function deviceLabel(device) {
 }
 .device-point.triggered .sensor-body {
   fill: #c5e0ff;
-  stroke: #2878d7;
+  stroke: var(--color-primary);
 }
 .device-point.triggered .sensor-core {
-  fill: #2878d7;
+  fill: var(--color-primary);
 }
 .device-point.offline .light-ring,
 .device-point.offline .sensor-body {

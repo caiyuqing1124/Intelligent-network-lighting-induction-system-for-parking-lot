@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { getActivePinia } from 'pinia'
 import { ElButton, ElSlider } from 'element-plus'
+import EmptyState from '../EmptyState/EmptyState.vue'
 import { getAppSimulator } from '../../mock/simulator.js'
 import { useDeviceStore } from '../../store/deviceStore.js'
 import { useRuleStore } from '../../store/ruleStore.js'
@@ -148,7 +149,7 @@ function shortenRecoveryWait() {
       </div>
       <div v-if="device.status !== 'online' && device.recoverAt !== null">
         <dt>预计恢复</dt>
-        <dd>{{ formatRemaining(device.recoverAt) }} 后由模拟引擎自动恢复</dd>
+        <dd>{{ formatRemaining(device.recoverAt) }} 后由系统自动恢复</dd>
       </div>
     </dl>
 
@@ -217,30 +218,37 @@ function shortenRecoveryWait() {
         size="small"
         :disabled="device.status !== 'online'"
         @click="injectFault('offline')"
-        >模拟离线</ElButton
+        >注入离线</ElButton
       >
       <ElButton
         size="small"
         :disabled="device.status !== 'online'"
         @click="injectFault('fault')"
-        >模拟故障</ElButton
+        >注入故障</ElButton
       >
     </div>
   </div>
-  <p v-else class="empty-copy">设备已不在本次会话中，请重新选择。</p>
+  <EmptyState
+    v-else
+    compact
+    symbol="设"
+    tone="warning"
+    title="设备详情已失效"
+    description="设备信息已更新或不可用，请关闭详情后重新选择。"
+  />
 </template>
 
 <style scoped>
 .device-details div {
   display: flex;
   padding: 10px 0;
-  border-bottom: 1px solid #eef1f5;
+  border-bottom: 1px solid var(--color-border-light);
   gap: 18px;
 }
 .device-details dt {
   width: 86px;
   flex: 0 0 86px;
-  color: #7b8da1;
+  color: var(--color-text-muted);
 }
 .device-details dd {
   margin: 0;
@@ -268,7 +276,7 @@ function shortenRecoveryWait() {
 .control-disabled-note {
   margin: 0 0 16px;
   color: #7c8d9f;
-  font-size: 12px;
+  font-size: 14px;
 }
 .control-disabled-note {
   color: #b2523e;
@@ -284,10 +292,10 @@ function shortenRecoveryWait() {
   gap: 6px;
   margin-bottom: 16px;
   align-items: center;
-  font-size: 13px;
+  font-size: 15px;
 }
 .brightness-control strong {
-  color: #2878d7;
+  color: var(--color-primary);
 }
 .brightness-control :deep(.el-slider) {
   grid-column: 1 / -1;
@@ -299,11 +307,11 @@ function shortenRecoveryWait() {
   gap: 8px;
   margin-top: 20px;
   padding-top: 14px;
-  border-top: 1px dashed #dce5ef;
+  border-top: 1px dashed var(--color-border);
 }
 .device-dev-tools span {
   margin-right: 5px;
   color: #8998aa;
-  font-size: 12px;
+  font-size: 14px;
 }
 </style>

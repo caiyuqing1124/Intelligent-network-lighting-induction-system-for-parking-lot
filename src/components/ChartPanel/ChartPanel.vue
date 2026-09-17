@@ -23,10 +23,10 @@ defineProps({
 .chart-panel {
   min-width: 0;
   padding: 24px;
-  border: 1px solid #e3e9f0;
-  border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 8px 22px #1d2c4208;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
 }
 .chart-panel-heading {
   display: flex;
@@ -37,13 +37,13 @@ defineProps({
 }
 .chart-panel-heading h2 {
   margin: 0;
-  color: #2a415d;
+  color: var(--color-text-primary);
   font-size: 18px;
 }
 .chart-panel-heading p {
   margin: 6px 0 0;
-  color: #8191a4;
-  font-size: 12px;
+  color: var(--color-text-muted);
+  font-size: 14px;
   line-height: 1.5;
 }
 .chart-panel-heading > span {
@@ -51,7 +51,7 @@ defineProps({
   padding: 6px 9px;
   background: #eef3f8;
   color: #657a91;
-  font-size: 10px;
+  font-size: 13px;
   white-space: nowrap;
 }
 </style>

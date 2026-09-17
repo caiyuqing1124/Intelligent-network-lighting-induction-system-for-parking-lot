@@ -1,28 +1,48 @@
 import { defineStore } from 'pinia'
-
-const SESSION_KEY = 'parking-lighting-session'
-
-function readSession() {
-  return typeof sessionStorage !== 'undefined'
-    ? sessionStorage.getItem(SESSION_KEY)
-    : null
-}
+import {
+  authenticateLocalAccount,
+  readValidSession,
+  registerLocalAccount,
+  removeLocalAccount,
+  removeStoredSession,
+  writeStoredSession,
+} from '../utils/auth.js'
 
 export const useUserStore = defineStore('user', {
-  state: () => ({ username: readSession() }),
+  state: () => ({ username: readValidSession() }),
   getters: {
     isAuthenticated: (state) => Boolean(state.username),
   },
   actions: {
     setSession(username) {
+      if (!writeStoredSession(username)) return false
       this.username = username
-      if (typeof sessionStorage !== 'undefined')
-        sessionStorage.setItem(SESSION_KEY, username)
+      return true
     },
     clearSession() {
       this.username = null
-      if (typeof sessionStorage !== 'undefined')
-        sessionStorage.removeItem(SESSION_KEY)
+      removeStoredSession()
+    },
+    async register(username, password) {
+      return registerLocalAccount(username, password)
+    },
+    async login(username, password) {
+      const result = await authenticateLocalAccount(username, password)
+      if (result.ok && !this.setSession(result.account.username))
+        return { ok: false, reason: 'session_unavailable' }
+      return result
+    },
+    removeAccount(username) {
+      const result = removeLocalAccount(username)
+      if (
+        result.ok &&
+        this.username &&
+        this.username.toLocaleLowerCase('zh-CN') ===
+          result.account.normalizedUsername
+      ) {
+        this.clearSession()
+      }
+      return result
     },
   },
 })

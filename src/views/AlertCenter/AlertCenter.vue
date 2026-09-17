@@ -3,9 +3,11 @@ import { computed, ref } from 'vue'
 import { ElButton, ElDialog, ElMessage, ElOption, ElSelect } from 'element-plus'
 import AlertItem from '../../components/AlertItem/AlertItem.vue'
 import DeviceCard from '../../components/DeviceCard/DeviceCard.vue'
+import EmptyState from '../../components/EmptyState/EmptyState.vue'
 import { useAlertStore } from '../../store/alertStore.js'
 import { useDeviceStore } from '../../store/deviceStore.js'
 import { useZoneStore } from '../../store/zoneStore.js'
+import { filterAlertRows } from '../../utils/filterRecords.js'
 
 const alertStore = useAlertStore()
 const deviceStore = useDeviceStore()
@@ -30,11 +32,9 @@ const alertRows = computed(() =>
   }),
 )
 const filteredRows = computed(() =>
-  alertRows.value.filter(({ alert }) => {
-    if (levelFilter.value && alert.level !== levelFilter.value) return false
-    if (resolvedFilter.value === 'unresolved' && alert.resolved) return false
-    if (resolvedFilter.value === 'resolved' && !alert.resolved) return false
-    return true
+  filterAlertRows(alertRows.value, {
+    level: levelFilter.value,
+    resolved: resolvedFilter.value,
   }),
 )
 const criticalUnresolvedCount = computed(
@@ -76,11 +76,11 @@ function openDevice(id) {
       <p class="eyebrow">告警中心</p>
       <h1>设备异常处置台</h1>
       <p class="subheading">
-        告警确认与设备恢复相互独立；本页记录仅属于当前模拟会话。
+        集中查看设备异常，按级别筛选并确认处理；告警确认不改变设备状态。
       </p>
     </div>
-    <span class="alert-session-label"
-      >本次会话 {{ alertStore.alerts.length }} 条</span
+    <span class="alert-session-label page-meta-pill"
+      >统计周期内 {{ alertStore.alerts.length }} 条</span
     >
   </section>
 
@@ -153,19 +153,24 @@ function openDevice(id) {
       />
     </div>
 
-    <div v-else-if="hasFilters" class="alert-empty">
-      <span class="empty-symbol">筛</span>
-      <strong>没有符合当前条件的告警</strong>
-      <p>可以调整级别或处理状态，也可以清除全部筛选条件。</p>
+    <EmptyState
+      v-else-if="hasFilters"
+      symbol="筛"
+      title="没有符合当前条件的告警"
+      description="可以调整级别或处理状态，也可以清除全部筛选条件。"
+    >
       <ElButton type="primary" plain @click="clearFilters">清除筛选</ElButton>
-    </div>
+    </EmptyState>
 
-    <div v-else class="alert-empty">
-      <span class="empty-symbol safe">✓</span>
-      <strong>本次会话暂未产生告警</strong>
-      <p>模拟引擎检测到设备离线或故障后，告警会自动出现在这里。</p>
+    <EmptyState
+      v-else
+      symbol="✓"
+      tone="success"
+      title="暂无告警记录"
+      description="系统检测到设备离线或故障后，告警会自动出现在这里。"
+    >
       <RouterLink class="text-link" to="/devices">查看设备运行状态</RouterLink>
-    </div>
+    </EmptyState>
   </section>
 
   <ElDialog
@@ -184,7 +189,7 @@ function openDevice(id) {
   padding: 8px 12px;
   background: #eef3f8;
   color: #61758d;
-  font-size: 12px;
+  font-size: 14px;
   white-space: nowrap;
 }
 .alert-overview {
@@ -192,15 +197,15 @@ function openDevice(id) {
   grid-template-columns: 1fr 1fr 1.35fr minmax(270px, 1.5fr);
   overflow: hidden;
   margin-bottom: 20px;
-  border: 1px solid #e3e9f0;
+  border: 1px solid var(--color-border);
   border-radius: 14px;
   background: #fff;
-  box-shadow: 0 8px 22px #1d2c4208;
+  box-shadow: var(--shadow-panel);
 }
 .alert-overview > div {
   min-width: 0;
   padding: 20px 22px;
-  border-right: 1px solid #e9eef4;
+  border-right: 1px solid var(--color-border-light);
 }
 .alert-overview > div:last-child {
   border-right: 0;
@@ -213,7 +218,7 @@ function openDevice(id) {
 .alert-overview span,
 .alert-overview small {
   color: #7e8fa3;
-  font-size: 11px;
+  font-size: 13px;
 }
 .alert-overview > div > strong {
   margin: 8px 0;
@@ -231,17 +236,17 @@ function openDevice(id) {
   color: #fff;
 }
 .alert-overview-note {
-  background: #f8fafc;
+  background: var(--color-surface-muted);
 }
 .alert-overview .alert-overview-note strong {
   margin: 0 0 7px;
   color: #3b5571;
-  font-size: 13px;
+  font-size: 15px;
 }
 .alert-overview-note p {
   margin: 0;
   color: #74869b;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.65;
 }
 .alert-content {
@@ -253,7 +258,7 @@ function openDevice(id) {
   gap: 11px;
   margin-bottom: 15px;
   padding: 15px 17px;
-  border: 1px solid #e3e9f0;
+  border: 1px solid var(--color-border);
   border-radius: 12px;
   background: #fff;
 }
@@ -267,12 +272,12 @@ function openDevice(id) {
 }
 .alert-toolbar strong {
   color: #344d69;
-  font-size: 14px;
+  font-size: 15px;
 }
 .alert-toolbar span {
   margin-top: 4px;
   color: #8594a6;
-  font-size: 11px;
+  font-size: 13px;
 }
 .alert-filter {
   width: 165px;
@@ -289,7 +294,7 @@ function openDevice(id) {
   justify-content: center;
   border: 1px dashed #d6e0ea;
   border-radius: 14px;
-  background: #f8fafc;
+  background: var(--color-surface-muted);
   color: #76889d;
   text-align: center;
 }
@@ -306,7 +311,7 @@ function openDevice(id) {
 }
 .empty-symbol.safe {
   background: #e6f5ed;
-  color: #188054;
+  color: var(--color-success);
 }
 .alert-empty strong {
   color: #405a77;
@@ -315,7 +320,7 @@ function openDevice(id) {
 .alert-empty p {
   max-width: 470px;
   margin: 8px 20px 16px;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.6;
 }
 @media (max-width: 1050px) {
@@ -324,7 +329,7 @@ function openDevice(id) {
   }
   .alert-overview-note {
     grid-column: 1 / -1;
-    border-top: 1px solid #e9eef4;
+    border-top: 1px solid var(--color-border-light);
   }
 }
 @media (max-width: 720px) {
@@ -336,7 +341,7 @@ function openDevice(id) {
   }
   .alert-overview > div:nth-child(3) {
     grid-column: 1 / -1;
-    border-top: 1px solid #e9eef4;
+    border-top: 1px solid var(--color-border-light);
   }
   .alert-toolbar {
     align-items: stretch;

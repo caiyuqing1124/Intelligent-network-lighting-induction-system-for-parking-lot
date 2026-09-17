@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { ElDialog } from 'element-plus'
 import DeviceCard from '../../components/DeviceCard/DeviceCard.vue'
+import EmptyState from '../../components/EmptyState/EmptyState.vue'
 import FloorMap from '../../components/FloorMap/FloorMap.vue'
 import { useDeviceStore } from '../../store/deviceStore.js'
 import { useZoneStore } from '../../store/zoneStore.js'
@@ -85,10 +86,10 @@ function formatRemaining(untilAt) {
   <section class="page-heading">
     <div>
       <p class="eyebrow">分区监控</p>
-      <h1>车库照明实时分布</h1>
-      <p class="subheading">点位显示本地模拟状态；点击灯具或感应器查看详情。</p>
+      <h1>车库照明当前分布</h1>
+      <p class="subheading">查看灯具与感应器当前状态，点击点位查看详情。</p>
     </div>
-    <span class="zone-device-count"
+    <span class="zone-device-count page-meta-pill"
       >{{ floorDevices.length }} 台设备 · {{ floorZones.length }} 个分区</span
     >
   </section>
@@ -193,7 +194,13 @@ function formatRemaining(untilAt) {
       </article>
     </aside>
   </div>
-  <p v-else class="panel empty-copy">暂无楼层数据，请检查本地模拟分区配置。</p>
+  <EmptyState
+    v-else
+    class="panel"
+    symbol="层"
+    title="暂无楼层数据"
+    description="请检查分区与楼层基础配置，数据恢复后这里会显示平面图。"
+  />
 
   <ElDialog
     v-model="dialogVisible"
@@ -208,7 +215,7 @@ function formatRemaining(untilAt) {
 <style scoped>
 .zone-device-count {
   color: #71839a;
-  font-size: 13px;
+  font-size: 15px;
   white-space: nowrap;
 }
 .floor-switch {
@@ -216,9 +223,9 @@ function formatRemaining(untilAt) {
   gap: 5px;
   margin-bottom: 20px;
   padding: 5px;
-  border: 1px solid #dce5ef;
+  border: 1px solid var(--color-border);
   border-radius: 11px;
-  background: #e9eef5;
+  background: var(--color-border-light);
 }
 .floor-switch button {
   border: 0;
@@ -227,7 +234,7 @@ function formatRemaining(untilAt) {
   background: transparent;
   color: #61748b;
   font: inherit;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -255,7 +262,7 @@ function formatRemaining(untilAt) {
   gap: 10px 18px;
   margin-top: 17px;
   color: #70839a;
-  font-size: 12px;
+  font-size: 14px;
 }
 .map-legend span {
   display: inline-flex;
@@ -277,7 +284,7 @@ function formatRemaining(untilAt) {
 }
 .map-legend .legend-active {
   background: #c5e0ff;
-  border-color: #2878d7;
+  border-color: var(--color-primary);
   border-radius: 3px;
 }
 .map-legend .legend-offline {
@@ -306,12 +313,12 @@ function formatRemaining(untilAt) {
 }
 .zone-status-heading small {
   color: #8a99ab;
-  font-size: 12px;
+  font-size: 14px;
 }
 .zone-phase-pill {
   color: #537087;
   background: #edf2f7;
-  font-size: 12px;
+  font-size: 14px;
   border-radius: 20px;
   padding: 6px 9px;
   white-space: nowrap;
@@ -337,7 +344,7 @@ function formatRemaining(untilAt) {
 }
 .zone-trigger-count span {
   color: #7f91a5;
-  font-size: 12px;
+  font-size: 14px;
 }
 .return-timer {
   display: flex;
@@ -347,7 +354,7 @@ function formatRemaining(untilAt) {
   background: #fff4df;
   color: #8a651d;
   padding: 10px 12px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .return-timer strong {
   font-size: 17px;
@@ -357,7 +364,7 @@ function formatRemaining(untilAt) {
   min-height: 18px;
   margin: 0 0 12px;
   color: #8795a6;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
 }
 .sensor-status-list {
@@ -369,7 +376,7 @@ function formatRemaining(untilAt) {
   gap: 8px;
   padding-top: 9px;
   color: #75879b;
-  font-size: 12px;
+  font-size: 14px;
 }
 .sensor-status-list strong {
   color: #436486;

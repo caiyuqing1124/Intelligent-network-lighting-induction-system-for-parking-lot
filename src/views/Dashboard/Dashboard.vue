@@ -6,6 +6,7 @@ import { CanvasRenderer } from 'echarts/renderers'
 import { LineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
+import EmptyState from '../../components/EmptyState/EmptyState.vue'
 import { getAppSimulator } from '../../mock/simulator.js'
 import { useAlertStore } from '../../store/alertStore.js'
 import { useDeviceStore } from '../../store/deviceStore.js'
@@ -78,7 +79,7 @@ const energyOption = computed(() => ({
     type: 'time',
     boundaryGap: false,
     axisLabel: { color: '#728198', formatter: '{HH}:{mm}:{ss}' },
-    axisLine: { lineStyle: { color: '#dce5ef' } },
+    axisLine: { lineStyle: { color: '#e3e9f0' } },
     axisTick: { show: false },
     splitLine: { show: false },
   },
@@ -90,7 +91,7 @@ const energyOption = computed(() => ({
   },
   series: [
     {
-      name: '模拟实际用电',
+      name: '实际用电估算',
       type: 'line',
       smooth: false,
       showSymbol: false,
@@ -216,11 +217,11 @@ function toggleRandomEvents() {
       <p class="eyebrow">运营驾驶舱</p>
       <h1>全场运行总览</h1>
       <p class="subheading">
-        本地模拟数据持续更新；刷新页面将重新开始本次运行会话。
+        集中掌握设备在线情况、分区联动、异常告警与照明能耗。
       </p>
     </div>
     <span class="running-indicator" :class="{ stopped: !simulator.running }">
-      <i></i>{{ simulator.running ? '模拟运行中' : '模拟未启动' }}
+      <i></i>{{ simulator.running ? '系统运行中' : '系统未启动' }}
     </span>
   </section>
 
@@ -241,7 +242,7 @@ function toggleRandomEvents() {
       <small>{{ litLights }} / {{ onlineLights.length }} 盏在线灯具亮灯</small>
     </div>
     <div class="metric metric-alert">
-      <span>本次会话告警数</span>
+      <span>统计周期告警数</span>
       <strong>{{ alertCount }}</strong>
       <small class="alert-chip">未处理 {{ alertStore.unresolvedCount }}</small>
     </div>
@@ -251,14 +252,14 @@ function toggleRandomEvents() {
     <article class="panel energy-panel">
       <div class="panel-heading">
         <div>
-          <h2>本次会话用电趋势</h2>
-          <p>按灯具状态持续时间累计，曲线从本次会话的 0 开始。</p>
+          <h2>累计用电趋势</h2>
+          <p>根据灯具在线时长与输出亮度累计核算。</p>
         </div>
-        <span>本地模拟估算</span>
+        <span>能耗估算</span>
       </div>
       <div class="energy-totals">
         <div>
-          <span>模拟实际用电</span
+          <span>实际用电估算</span
           ><strong>{{ energyStore.actualKwh.toFixed(4) }}</strong> kWh
         </div>
         <div>
@@ -267,7 +268,7 @@ function toggleRandomEvents() {
         </div>
       </div>
       <div class="chart-legend" aria-hidden="true">
-        <span><i class="actual-line"></i>模拟实际用电</span>
+        <span><i class="actual-line"></i>实际用电估算</span>
         <span><i class="baseline-line"></i>在线时段常亮基准</span>
       </div>
       <VChart
@@ -276,12 +277,14 @@ function toggleRandomEvents() {
         :option="energyOption"
         autoresize
       />
-      <div v-else class="chart-empty">
-        <strong>正在积累本次会话数据</strong>
-        <span
-          >模拟引擎完成首次周期采样后显示趋势；当前没有足够的时间点连成曲线。</span
-        >
-      </div>
+      <EmptyState
+        v-else
+        class="chart-empty"
+        compact
+        symbol="趋"
+        title="趋势数据积累中"
+        description="完成首次周期采样后显示趋势；当前没有足够的时间点连成曲线。"
+      />
     </article>
 
     <article class="panel zone-panel">
@@ -305,7 +308,13 @@ function toggleRandomEvents() {
           <small>{{ zone.active }} 个感应中</small>
         </div>
       </div>
-      <p v-else class="empty-copy">暂无分区数据，请检查本地模拟数据。</p>
+      <EmptyState
+        v-else
+        compact
+        symbol="区"
+        title="暂无分区数据"
+        description="请检查分区基础配置，配置恢复后这里会显示当前运行状态。"
+      />
     </article>
   </section>
 
@@ -343,7 +352,7 @@ function toggleRandomEvents() {
       <small v-if="selectedSensorId">
         上方分区状态与统计会同步变化；{{
           randomEventsEnabled
-            ? '随机模拟可能触发其他分区。'
+            ? '随机事件可能触发其他分区。'
             : '随机事件已暂停，可稳定观察本次联动。'
         }}
       </small>

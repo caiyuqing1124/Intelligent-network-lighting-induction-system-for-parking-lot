@@ -11,10 +11,12 @@ import { CanvasRenderer } from 'echarts/renderers'
 import { ElOption, ElSelect } from 'element-plus'
 import VChart from 'vue-echarts'
 import ChartPanel from '../../components/ChartPanel/ChartPanel.vue'
+import EmptyState from '../../components/EmptyState/EmptyState.vue'
 import { SIMULATOR_CONFIG } from '../../mock/simulator.js'
 import { useDeviceStore } from '../../store/deviceStore.js'
 import { useEnergyStore } from '../../store/energyStore.js'
 import { useZoneStore } from '../../store/zoneStore.js'
+import { filterEnergyRows } from '../../utils/filterRecords.js'
 
 use([
   CanvasRenderer,
@@ -54,9 +56,7 @@ const deviceRows = computed(() =>
   }),
 )
 const filteredRows = computed(() =>
-  zoneFilter.value
-    ? deviceRows.value.filter((row) => row.device.zoneId === zoneFilter.value)
-    : deviceRows.value,
+  filterEnergyRows(deviceRows.value, zoneFilter.value),
 )
 const selectedRow = computed(() =>
   deviceRows.value.find((row) => row.device.id === selectedDeviceId.value),
@@ -91,7 +91,7 @@ const trendOption = computed(() => ({
   legend: {
     top: 0,
     right: 0,
-    textStyle: { color: '#60748b', fontSize: 11 },
+    textStyle: { color: '#60748b', fontSize: 12 },
   },
   tooltip: {
     trigger: 'axis',
@@ -110,7 +110,7 @@ const trendOption = computed(() => ({
     type: 'time',
     boundaryGap: false,
     axisLabel: { color: '#7b8da2', formatter: '{HH}:{mm}:{ss}' },
-    axisLine: { lineStyle: { color: '#dce5ef' } },
+    axisLine: { lineStyle: { color: '#e3e9f0' } },
     axisTick: { show: false },
     splitLine: { show: false },
   },
@@ -122,7 +122,7 @@ const trendOption = computed(() => ({
   },
   series: [
     {
-      name: '模拟实际用电',
+      name: '实际用电估算',
       type: 'line',
       showSymbol: false,
       lineStyle: { width: 3 },
@@ -172,22 +172,22 @@ function selectAudit(deviceId) {
   <section class="page-heading">
     <div>
       <p class="eyebrow">能耗报表</p>
-      <h1>本次会话能耗核算</h1>
+      <h1>照明能耗核算</h1>
       <p class="subheading">
-        每个数字均由灯具在线时长和实际亮度累计得出；刷新页面后重新从 0 开始。
+        汇总当前统计周期的用电、常亮基准与节能表现，支持逐灯核对。
       </p>
     </div>
-    <span class="energy-cutoff"
+    <span class="energy-cutoff page-meta-pill"
       >统计截止 {{ formatTime(energyStore.lastSettledAt) }}</span
     >
   </section>
 
-  <section class="energy-ledger-hero" aria-label="本次会话能耗汇总">
+  <section class="energy-ledger-hero" aria-label="统计周期能耗汇总">
     <div class="energy-primary-total">
-      <span>模拟实际用电</span>
+      <span>实际用电估算</span>
       <strong>{{ formatEnergy(energyStore.actualKwh) }}</strong>
       <small>kWh</small>
-      <p>当前灯具模拟功率 {{ currentPowerW.toFixed(1) }} W</p>
+      <p>当前估算功率 {{ currentPowerW.toFixed(1) }} W</p>
     </div>
     <div class="energy-comparison">
       <div>
@@ -215,7 +215,7 @@ function selectAudit(deviceId) {
         <strong>{{ formatTime(energyStore.startedAt) }}</strong>
       </div>
       <div>
-        <span>已核算会话时长</span>
+        <span>已核算时长</span>
         <strong>
           {{
             formatDuration(
@@ -234,8 +234,8 @@ function selectAudit(deviceId) {
 
   <section class="energy-analysis-grid">
     <ChartPanel
-      title="真实累计趋势"
-      subtitle="只连接模拟引擎实际采样点，不补造刷新前数据。"
+      title="累计用电趋势"
+      subtitle="按灯具状态连续核算，定期更新累计趋势。"
       :tag="`${SIMULATOR_CONFIG.energySampleMs / 1000} 秒采样`"
     >
       <VChart
@@ -244,13 +244,14 @@ function selectAudit(deviceId) {
         :option="trendOption"
         autoresize
       />
-      <div v-else class="energy-chart-empty">
-        <strong>正在等待第二个真实采样点</strong>
-        <span>
-          会话从 0 开始；约 {{ SIMULATOR_CONFIG.energySampleMs / 1000 }}
-          秒后形成首段趋势。
-        </span>
-      </div>
+      <EmptyState
+        v-else
+        class="energy-chart-empty"
+        compact
+        symbol="趋"
+        title="趋势数据积累中"
+        :description="`等待至少两个采样点后显示趋势，采样间隔为 ${SIMULATOR_CONFIG.energySampleMs / 1000} 秒。`"
+      />
     </ChartPanel>
 
     <article class="calculation-panel">
@@ -402,16 +403,23 @@ function selectAudit(deviceId) {
         </tfoot>
       </table>
     </div>
-    <p v-else class="energy-empty">
-      当前分区没有灯具能耗记录，请选择其他分区或检查本地设备数据。
-    </p>
+    <EmptyState
+      v-else
+      compact
+      symbol="能"
+      title="当前分区没有能耗记录"
+      description="请选择其他分区，或检查灯具基础数据是否完整。"
+    />
   </section>
 
   <section class="energy-method-note">
     <strong>统一核算口径</strong>
     <p>
-      模拟功率 P = 额定功率 × 亮度百分比；电量 E = P × 持续秒数 ÷
-      3,600,000。常亮基准只累计设备在线时段，刷新页面后运行数据和曲线均重置。
+      估算功率 P = 额定功率 × 亮度百分比；电量 E = P × 持续秒数 ÷
+      3,600,000。常亮基准只累计设备在线时段，离线或故障时段不参与节能核算。
+    </p>
+    <p>
+      数据由本地运行规则和灯具状态估算，不代表电表或硬件实采读数。统计周期从系统初始化时开始；刷新页面会重新初始化设备状态、策略、告警和能耗，已注册账号不受影响。
     </p>
   </section>
 </template>
@@ -420,7 +428,7 @@ function selectAudit(deviceId) {
 .energy-cutoff {
   max-width: 270px;
   color: #6f8197;
-  font-size: 12px;
+  font-size: 14px;
   text-align: right;
 }
 .energy-ledger-hero {
@@ -445,7 +453,7 @@ function selectAudit(deviceId) {
 .energy-comparison span,
 .energy-session-info span {
   color: #a6b8cc;
-  font-size: 11px;
+  font-size: 13px;
 }
 .energy-primary-total > strong {
   display: inline-block;
@@ -461,7 +469,7 @@ function selectAudit(deviceId) {
 .energy-primary-total p {
   margin: 11px 0 0;
   color: #8fd1bb;
-  font-size: 11px;
+  font-size: 13px;
 }
 .energy-comparison {
   display: grid;
@@ -473,7 +481,7 @@ function selectAudit(deviceId) {
 .energy-session-info strong {
   display: block;
   margin-top: 7px;
-  font-size: 15px;
+  font-size: 16px;
   font-variant-numeric: tabular-nums;
 }
 .energy-session-info div + div {
@@ -482,7 +490,7 @@ function selectAudit(deviceId) {
 .energy-session-info p {
   margin: 14px 0 0;
   color: #9fb1c6;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.55;
 }
 .energy-analysis-grid {
@@ -503,21 +511,21 @@ function selectAudit(deviceId) {
   gap: 8px;
   border: 1px dashed #d9e2ec;
   border-radius: 10px;
-  background: #f8fafc;
+  background: var(--color-surface-muted);
   color: #8292a5;
   text-align: center;
-  font-size: 12px;
+  font-size: 14px;
 }
 .energy-chart-empty strong {
   color: #45617e;
-  font-size: 14px;
+  font-size: 15px;
 }
 .calculation-panel {
   padding: 24px;
   border-radius: 14px;
   background: #f7f0df;
   color: #3d4650;
-  box-shadow: 0 8px 22px #1d2c4208;
+  box-shadow: var(--shadow-panel);
 }
 .calculation-heading {
   display: flex;
@@ -529,7 +537,7 @@ function selectAudit(deviceId) {
 }
 .calculation-heading span {
   color: #8d7957;
-  font-size: 10px;
+  font-size: 12px;
 }
 .calculation-heading h2 {
   margin: 5px 0 0;
@@ -559,11 +567,11 @@ function selectAudit(deviceId) {
 }
 .audit-factors dt {
   color: #887a63;
-  font-size: 10px;
+  font-size: 12px;
 }
 .audit-factors dd {
   margin: 6px 0 0;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
 }
 .audit-formula {
@@ -574,13 +582,13 @@ function selectAudit(deviceId) {
 .audit-formula span,
 .baseline-formula span {
   color: #87765a;
-  font-size: 10px;
+  font-size: 12px;
 }
 .audit-formula p {
   margin: 8px 0;
   color: #59616c;
   font-family: Consolas, monospace;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.6;
 }
 .audit-formula strong {
@@ -590,7 +598,7 @@ function selectAudit(deviceId) {
 }
 .audit-formula.empty {
   color: #82745e;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.6;
 }
 .baseline-formula {
@@ -600,15 +608,15 @@ function selectAudit(deviceId) {
   margin-top: 12px;
   padding-top: 12px;
   border-top: 1px solid #ded1b5;
-  font-size: 12px;
+  font-size: 14px;
 }
 .device-energy-ledger {
   overflow: hidden;
   margin-bottom: 20px;
-  border: 1px solid #e3e9f0;
+  border: 1px solid var(--color-border);
   border-radius: 14px;
   background: #fff;
-  box-shadow: 0 8px 22px #1d2c4208;
+  box-shadow: var(--shadow-panel);
 }
 .ledger-heading {
   display: flex;
@@ -626,7 +634,7 @@ function selectAudit(deviceId) {
 .ledger-heading p {
   margin: 5px 0 0;
   color: #8292a5;
-  font-size: 11px;
+  font-size: 13px;
 }
 .ledger-tools {
   display: flex;
@@ -635,11 +643,11 @@ function selectAudit(deviceId) {
 }
 .ledger-check {
   color: #b64c42;
-  font-size: 11px;
+  font-size: 13px;
   white-space: nowrap;
 }
 .ledger-check.matched {
-  color: #188054;
+  color: var(--color-success);
 }
 .zone-energy-filter {
   width: 150px;
@@ -651,7 +659,7 @@ function selectAudit(deviceId) {
   width: 100%;
   border-collapse: collapse;
   color: #50647c;
-  font-size: 11px;
+  font-size: 13px;
   text-align: left;
   white-space: nowrap;
 }
@@ -666,7 +674,7 @@ function selectAudit(deviceId) {
   font-weight: 650;
 }
 .energy-detail-table tbody tr.selected {
-  background: #eff6ff;
+  background: var(--color-primary-soft);
 }
 .energy-detail-table td span,
 .energy-detail-table td small {
@@ -674,7 +682,7 @@ function selectAudit(deviceId) {
 }
 .energy-detail-table td small {
   margin-top: 3px;
-  font-size: 9px;
+  font-size: 12px;
 }
 .energy-device-id {
   color: #2b527a;
@@ -682,7 +690,7 @@ function selectAudit(deviceId) {
 }
 .row-status.online,
 .number-cell.saved {
-  color: #188054;
+  color: var(--color-success);
 }
 .row-status.offline {
   color: #77879a;
@@ -709,26 +717,26 @@ function selectAudit(deviceId) {
   padding: 55px 20px;
   color: #7d8da0;
   text-align: center;
-  font-size: 12px;
+  font-size: 14px;
 }
 .energy-method-note {
   display: flex;
   gap: 18px;
   align-items: flex-start;
   padding: 17px 20px;
-  border-left: 4px solid #2878d7;
+  border-left: 4px solid var(--color-primary);
   border-radius: 8px;
   background: #eaf3ff;
 }
 .energy-method-note strong {
   color: #255d99;
-  font-size: 12px;
+  font-size: 14px;
   white-space: nowrap;
 }
 .energy-method-note p {
   margin: 0;
   color: #5f7590;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.65;
 }
 @media (max-width: 1100px) {

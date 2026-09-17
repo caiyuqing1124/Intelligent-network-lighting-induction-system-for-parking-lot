@@ -75,7 +75,7 @@ function formatTime(timestamp) {
         <strong :class="['device-current', device?.status ?? 'unknown']">
           {{ statusLabel(device?.status) }}
         </strong>
-        <small>{{ device ? '实时状态' : '设备数据缺失' }}</small>
+        <small>{{ device ? '当前状态' : '设备数据缺失' }}</small>
       </div>
     </div>
 
@@ -104,7 +104,7 @@ function formatTime(timestamp) {
   border-left: 4px solid #d5a33c;
   border-radius: 12px;
   background: #fff;
-  box-shadow: 0 5px 18px #1d2c4207;
+  box-shadow: 0 5px 18px rgb(29 44 66 / 7%);
 }
 .alert-item.level-critical {
   border-left-color: #d65347;
@@ -143,7 +143,7 @@ function formatTime(timestamp) {
 }
 .alert-title-row time {
   color: #8594a6;
-  font-size: 11px;
+  font-size: 13px;
   white-space: nowrap;
 }
 .level-label,
@@ -151,11 +151,11 @@ function formatTime(timestamp) {
   display: inline-flex;
   border-radius: 20px;
   padding: 4px 8px;
-  font-size: 11px;
+  font-size: 13px;
 }
 .level-label.warning {
   color: #99671d;
-  background: #fff3da;
+  background: var(--color-warning-soft);
 }
 .level-label.critical {
   color: #bb4339;
@@ -166,13 +166,13 @@ function formatTime(timestamp) {
   background: #eaf3ff;
 }
 .type-label {
-  color: #60748b;
+  color: var(--color-text-secondary);
   background: #eef2f6;
 }
 .alert-main h3 {
   margin: 10px 0 9px;
   color: #253b56;
-  font-size: 15px;
+  font-size: 16px;
 }
 .alert-device-line {
   display: flex;
@@ -180,13 +180,13 @@ function formatTime(timestamp) {
   gap: 7px 13px;
   align-items: center;
   color: #8190a3;
-  font-size: 11px;
+  font-size: 13px;
 }
 .device-link {
   border: 0;
   padding: 0;
   background: none;
-  color: #2878d7;
+  color: var(--color-primary);
   cursor: pointer;
   font: inherit;
   font-weight: 700;
@@ -215,25 +215,25 @@ function formatTime(timestamp) {
 .alert-state-panel span,
 .alert-state-panel small {
   color: #8998aa;
-  font-size: 10px;
+  font-size: 12px;
 }
 .alert-state-panel strong {
   margin: 6px 0 5px;
   color: #3e536c;
-  font-size: 14px;
+  font-size: 15px;
 }
 .alert-state-panel strong.unresolved {
   color: #b45b30;
 }
 .alert-state-panel strong.resolved,
 .device-current.online {
-  color: #188054;
+  color: var(--color-success);
 }
 .device-current.offline {
   color: #6c7c90;
 }
 .device-current.fault {
-  color: #c44d42;
+  color: var(--color-danger);
 }
 .alert-actions {
   justify-self: end;

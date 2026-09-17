@@ -40,7 +40,8 @@ export function reconcileZone({
   } else if (onlineSensors.length === 0) {
     if (zone.delayUntilAt !== null) setDelay(zone.id, null)
   } else if (zone.delayUntilAt === null && wasActive) {
-    setDelay(zone.id, now + rule.triggerDelayOff * 1000)
+    if (rule.triggerDelayOff > 0)
+      setDelay(zone.id, now + rule.triggerDelayOff * 1000)
   } else if (zone.delayUntilAt !== null && now >= zone.delayUntilAt) {
     setDelay(zone.id, null)
   }

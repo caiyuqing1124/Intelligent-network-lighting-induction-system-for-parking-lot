@@ -26,6 +26,8 @@ export function createSimulationController(pinia, options = {}) {
   const energyStore = useEnergyStore(pinia)
   const nowFn = options.now ?? Date.now
   const random = options.random ?? Math.random
+  const scheduleInterval = options.setInterval ?? globalThis.setInterval
+  const cancelInterval = options.clearInterval ?? globalThis.clearInterval
   const config = { ...SIMULATOR_CONFIG, ...options.config }
   let intervalId = null
   let randomEventsEnabled = true
@@ -273,7 +275,7 @@ export function createSimulationController(pinia, options = {}) {
   function start() {
     if (intervalId !== null) return false
     reset(nowFn())
-    intervalId = setInterval(
+    intervalId = scheduleInterval(
       () => tick(nowFn(), { randomEvents: randomEventsEnabled }),
       config.tickMs,
     )
@@ -282,7 +284,7 @@ export function createSimulationController(pinia, options = {}) {
 
   function stop() {
     if (intervalId === null) return false
-    clearInterval(intervalId)
+    cancelInterval(intervalId)
     intervalId = null
     settle(nowFn())
     return true

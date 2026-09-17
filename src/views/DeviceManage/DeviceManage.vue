@@ -2,8 +2,10 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { ElButton, ElDialog, ElInput, ElOption, ElSelect } from 'element-plus'
 import DeviceCard from '../../components/DeviceCard/DeviceCard.vue'
+import EmptyState from '../../components/EmptyState/EmptyState.vue'
 import { useDeviceStore } from '../../store/deviceStore.js'
 import { useZoneStore } from '../../store/zoneStore.js'
+import { filterDevices } from '../../utils/filterRecords.js'
 
 const deviceStore = useDeviceStore()
 const zoneStore = useZoneStore()
@@ -27,19 +29,13 @@ const hasFilters = computed(
     typeFilter.value !== '' ||
     statusFilter.value !== '',
 )
-const filteredDevices = computed(() => {
-  const keyword = search.value.trim().toLocaleLowerCase()
-  return deviceStore.devices.filter((device) => {
-    if (typeFilter.value && device.type !== typeFilter.value) return false
-    if (statusFilter.value && device.status !== statusFilter.value) return false
-    if (!keyword) return true
-    const zoneName = zoneStore.getById(device.zoneId)?.name ?? ''
-    return (
-      device.id.toLocaleLowerCase().includes(keyword) ||
-      zoneName.toLocaleLowerCase().includes(keyword)
-    )
-  })
-})
+const filteredDevices = computed(() =>
+  filterDevices(deviceStore.devices, zoneStore.zones, {
+    search: search.value,
+    type: typeFilter.value,
+    status: statusFilter.value,
+  }),
+)
 const dialogVisible = computed({
   get: () => selectedDeviceId.value !== null,
   set: (visible) => {
@@ -89,7 +85,7 @@ function deviceReading(device) {
         集中查看灯具与感应器状态，在线灯具可进入详情手动控制。
       </p>
     </div>
-    <span class="device-count"
+    <span class="device-count page-meta-pill"
       >{{ onlineCount }} / {{ deviceStore.devices.length }} 台在线</span
     >
   </section>
@@ -144,7 +140,7 @@ function deviceReading(device) {
             <th scope="col">类型</th>
             <th scope="col">所属分区</th>
             <th scope="col">在线状态</th>
-            <th scope="col">实时状态</th>
+            <th scope="col">当前输出</th>
             <th scope="col">控制模式</th>
             <th scope="col">操作</th>
           </tr>
@@ -182,10 +178,22 @@ function deviceReading(device) {
         </tbody>
       </table>
     </div>
-    <p v-else-if="hasFilters" class="device-empty">
-      没有符合当前搜索或筛选条件的设备；可修改条件或点击“清除筛选”。
-    </p>
-    <p v-else class="device-empty">暂无设备数据，请检查本地模拟数据。</p>
+    <EmptyState
+      v-else-if="hasFilters"
+      compact
+      symbol="筛"
+      title="没有符合当前条件的设备"
+      description="可以调整搜索词、设备类型或在线状态，也可以清除全部筛选条件。"
+    >
+      <ElButton type="primary" plain @click="clearFilters">清除筛选</ElButton>
+    </EmptyState>
+    <EmptyState
+      v-else
+      compact
+      symbol="设"
+      title="暂无设备数据"
+      description="请检查设备基础配置，数据恢复后这里会显示设备台账。"
+    />
   </section>
 
   <ElDialog
@@ -208,7 +216,7 @@ function deviceReading(device) {
   gap: 12px;
   align-items: center;
   padding-bottom: 20px;
-  border-bottom: 1px solid #e9eef5;
+  border-bottom: 1px solid var(--color-border-light);
 }
 .device-search {
   width: min(330px, 100%);
@@ -228,8 +236,8 @@ function deviceReading(device) {
   font-size: 18px;
 }
 .device-table-heading span {
-  color: #8190a4;
-  font-size: 13px;
+  color: var(--color-text-muted);
+  font-size: 15px;
 }
 .device-id-cell {
   color: #26496e;
@@ -241,7 +249,7 @@ function deviceReading(device) {
   gap: 6px;
   border-radius: 20px;
   padding: 5px 9px;
-  font-size: 12px;
+  font-size: 14px;
 }
 .device-status::before {
   content: '';
@@ -260,7 +268,7 @@ function deviceReading(device) {
 }
 .device-status.fault {
   color: #c64c3e;
-  background: #fff0ed;
+  background: var(--color-danger-soft);
 }
 .manual-mode {
   color: #a66a1d;
@@ -275,7 +283,7 @@ function deviceReading(device) {
   padding: 55px 14px;
   color: #7d8da0;
   text-align: center;
-  font-size: 14px;
+  font-size: 15px;
 }
 @media (max-width: 650px) {
   .device-toolbar :deep(.el-input),

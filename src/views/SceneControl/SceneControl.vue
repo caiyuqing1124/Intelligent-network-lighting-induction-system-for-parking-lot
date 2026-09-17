@@ -12,6 +12,7 @@ import {
   ElSwitch,
   ElTimePicker,
 } from 'element-plus'
+import EmptyState from '../../components/EmptyState/EmptyState.vue'
 import { getAppSimulator } from '../../mock/simulator.js'
 import { useDeviceStore } from '../../store/deviceStore.js'
 import { useRuleStore } from '../../store/ruleStore.js'
@@ -209,7 +210,9 @@ function timeRangeLabel(rule) {
         调整感应保持、灯组回落与定时待机；保存后立即应用到自动模式灯具。
       </p>
     </div>
-    <span class="scene-count">{{ ruleStore.rules.length }} 套固定策略</span>
+    <span class="scene-count page-meta-pill"
+      >{{ ruleStore.rules.length }} 套固定策略</span
+    >
   </section>
 
   <div v-if="ruleStore.rules.length" class="scene-workspace">
@@ -257,7 +260,7 @@ function timeRangeLabel(rule) {
         </span>
       </header>
 
-      <section class="live-rule-strip" aria-label="策略实时运行状态">
+      <section class="live-rule-strip" aria-label="策略当前运行状态">
         <div>
           <span>在线自动灯具</span>
           <strong>{{ liveState.automaticLights.length }} 盏</strong>
@@ -444,13 +447,19 @@ function timeRangeLabel(rule) {
     </main>
   </div>
 
-  <p v-else class="panel empty-copy">暂无策略数据，请检查本地模拟策略配置。</p>
+  <EmptyState
+    v-else
+    class="panel"
+    symbol="策"
+    title="暂无策略数据"
+    description="请检查策略基础配置，数据恢复后这里会显示可编辑的联动策略。"
+  />
 </template>
 
 <style scoped>
 .scene-count {
   color: #71839a;
-  font-size: 13px;
+  font-size: 15px;
   white-space: nowrap;
 }
 .scene-workspace {
@@ -464,7 +473,7 @@ function timeRangeLabel(rule) {
   border: 1px solid #e3eaf2;
   border-radius: 15px;
   background: #fff;
-  box-shadow: 0 8px 22px #1d2c4208;
+  box-shadow: var(--shadow-panel);
 }
 .scene-list {
   position: sticky;
@@ -476,7 +485,7 @@ function timeRangeLabel(rule) {
   justify-content: space-between;
   padding: 18px 18px 13px;
   color: #405875;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
 }
 .scene-list-heading small {
@@ -499,7 +508,7 @@ function timeRangeLabel(rule) {
 }
 .scene-list-item:hover,
 .scene-list-item.selected {
-  background: #eff6ff;
+  background: var(--color-primary-soft);
 }
 .scene-list-item.selected {
   box-shadow: inset 3px 0 #2f7dd8;
@@ -516,11 +525,11 @@ function timeRangeLabel(rule) {
   border-radius: 9px;
   background: #e8eef6;
   color: #52708e;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
 }
 .scene-list-item.selected .scene-list-index {
-  background: #2878d7;
+  background: var(--color-primary);
   color: #fff;
 }
 .scene-list-copy {
@@ -532,18 +541,18 @@ function timeRangeLabel(rule) {
 }
 .scene-list-copy strong {
   overflow: hidden;
-  font-size: 13px;
+  font-size: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .scene-list-copy small {
   margin-top: 5px;
   color: #8392a5;
-  font-size: 11px;
+  font-size: 13px;
 }
 .scene-list-brightness {
   color: #266cb9;
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 750;
 }
 .scene-editor {
@@ -572,13 +581,13 @@ function timeRangeLabel(rule) {
 .scene-editor-heading p {
   margin: 7px 0 0;
   color: #8190a3;
-  font-size: 12px;
+  font-size: 14px;
 }
 .unsaved-pill,
 .schedule-state {
   border-radius: 20px;
   padding: 6px 9px;
-  font-size: 11px;
+  font-size: 13px;
   white-space: nowrap;
 }
 .unsaved-pill {
@@ -615,7 +624,7 @@ function timeRangeLabel(rule) {
 }
 .live-rule-strip span {
   color: #9fb2c9;
-  font-size: 11px;
+  font-size: 13px;
 }
 .live-rule-strip strong {
   overflow: hidden;
@@ -629,7 +638,7 @@ function timeRangeLabel(rule) {
 }
 .form-section {
   padding: 22px 0;
-  border-top: 1px solid #e9eef4;
+  border-top: 1px solid var(--color-border-light);
 }
 .form-section-heading {
   gap: 12px;
@@ -637,7 +646,7 @@ function timeRangeLabel(rule) {
 }
 .form-section-heading > span {
   color: #2a77cc;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 800;
 }
 .form-section-heading > div {
@@ -650,7 +659,7 @@ function timeRangeLabel(rule) {
 .form-section-heading p {
   margin: 4px 0 0;
   color: #8493a5;
-  font-size: 11px;
+  font-size: 13px;
 }
 .form-grid {
   display: grid;
@@ -668,7 +677,7 @@ function timeRangeLabel(rule) {
 .field-unit {
   margin-left: 8px;
   color: #738399;
-  font-size: 12px;
+  font-size: 14px;
 }
 .scene-form :deep(.el-input-number) {
   width: min(180px, calc(100% - 28px));
@@ -698,7 +707,7 @@ function timeRangeLabel(rule) {
   grid-column: 1 / -1;
   margin: -4px 0 0;
   color: #8292a5;
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.6;
 }
 .form-actions {
@@ -709,7 +718,7 @@ function timeRangeLabel(rule) {
 }
 .form-actions > span {
   color: #71849a;
-  font-size: 12px;
+  font-size: 14px;
 }
 .form-actions > div {
   display: flex;
@@ -722,7 +731,7 @@ function timeRangeLabel(rule) {
   padding: 15px;
   border: 1px dashed #cddcea;
   border-radius: 10px;
-  background: #f7f9fc;
+  background: var(--color-surface-muted);
 }
 .scene-dev-tools > div {
   flex: 1;
@@ -734,12 +743,12 @@ function timeRangeLabel(rule) {
 }
 .scene-dev-tools strong {
   color: #415d7b;
-  font-size: 13px;
+  font-size: 15px;
 }
 .scene-dev-tools span {
   margin-top: 4px;
   color: #8494a7;
-  font-size: 11px;
+  font-size: 13px;
 }
 @media (max-width: 960px) {
   .scene-workspace {
